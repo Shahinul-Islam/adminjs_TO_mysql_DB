@@ -2,6 +2,7 @@ import AdminJS from "adminjs";
 import AdminJSExpress from "@adminjs/express";
 import express from "express";
 import dotenv from "dotenv";
+import cors from "cors";
 
 import { Sequelize, DataTypes } from "sequelize";
 import * as AdminJSSequelize from "@adminjs/sequelize";
@@ -14,9 +15,9 @@ AdminJS.registerAdapter({
 const PORT = 3000;
 dotenv.config();
 
+const app = express();
+app.use(cors());
 const start = async () => {
-	const app = express();
-
 	const adminRouter = AdminJSExpress.buildRouter(admin);
 	app.use(admin.options.rootPath, adminRouter);
 
@@ -106,10 +107,48 @@ const admin = new AdminJS({
 	databases: [sequelize],
 });
 // Fetch all users from the wp_users table
-const users = await User.findAll();
+// const users = await User.findAll();
+app.get("/api/users", async (req, res) => {
+	try {
+		// Fetch all users from the wp_users table
+		const users = await User.findAll();
 
+		// Extract the relevant user data values
+		const userData = users.map((user) => user.dataValues);
+
+		// Return the user data in JSON format
+		res.json(userData);
+	} catch (error) {
+		console.error("Error fetching user data:", error);
+		res.status(500).json({ error: "Internal server error" });
+	}
+});
+
+// Route handler to get individual user information by ID
+app.get("/api/users/:id", async (req, res) => {
+	const { id } = req.params;
+	try {
+		// Find the user by ID
+		const user = await User.findByPk(id);
+
+		// If user not found, return 404
+		if (!user) {
+			return res.status(404).json({ error: "User not found" });
+		}
+
+		// Return the user data in JSON format
+		res.json(user);
+	} catch (error) {
+		console.error("Error fetching user data:", error);
+		res.status(500).json({ error: "Internal server error" });
+	}
+});
 // Log the list of users
-// console.log(users);
+// console.log(users[1].dataValues);
+// for (let index = 0; index < users.length; index++) {
+// 	const element = users[index];
+// 	console.log(element.dataValues);
+// }
 
 start();
 
